@@ -4,7 +4,6 @@ from os.path import join
 import numpy as np
 import torch
 
-from torchvision.transforms import Compose, ToTensor
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.sampler import WeightedRandomSampler
 from albumentations.core.composition import Compose
