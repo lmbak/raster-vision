@@ -17,13 +17,12 @@ from rastervision.backend.torch_utils.chip_classification.folder import ImageFol
 log = logging.getLogger(__name__)
 
 
-def calculate_oversampling_weights(data_labels, rare_classes, desired_prob):
+def calculate_oversampling_weights(data, rare_classes, desired_prob):
     '''
     Calculates weights tensor for oversampling
 
     args:
-        data_labels: (list) containing the labels of which the weights are to
-            be calculated.
+        data: (list of tup) in the form (image_path, label)
         rare classes: (list) of ints of the class labels that should be oversamples
         desired prob: (float) a single probability that the rare classes should
             have.
@@ -31,16 +30,16 @@ def calculate_oversampling_weights(data_labels, rare_classes, desired_prob):
         (tensor) with weights per index, e.g [0.5,0.1,0.9]
     '''
 
-    chip_inds = []
-    for (idx, class_idx) in enumerate(data_labes):
+    chip_idx = []
+    for idx, (image_pth, class_idx) in enumerate(data):
         if class_idx in rare_classes:
-            chip_indx.append(idx)
+            chip_idx.append(idx)
 
-    rare_weight = desired_prob / len(chip_inds)
-    common_weight = (1.0 - desired_prob) / (len(data_labels) - len(chip_inds))
+    rare_weight = desired_prob / len(chip_idx)
+    common_weight = (1.0 - desired_prob) / (len(data) - len(chip_idx))
 
-    weights = torch.full((len(imageFolder), ), common_weight)
-    weights[chip_inds] = rare_weight
+    weights = torch.full((len(data), ), common_weight)
+    weights[chip_idx] = rare_weight
 
     return weights
 
@@ -106,7 +105,7 @@ def build_databunch(data_dir, img_sz, batch_sz, class_names, rare_classes,
 
     if rare_classes != []:
         train_sample_weights = calculate_oversampling_weights(
-            train_ds.orig_dataset.imgs[:][1], rare_classes, desired_prob)
+            train_ds.orig_dataset.imgs, rare_classes, desired_prob)
         num_train_samples = len(train_ds)
         train_sampler = WeightedRandomSampler(
             weights=train_sample_weights,
