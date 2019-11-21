@@ -32,7 +32,7 @@ def calculate_oversampling_weights(targets, rare_classes, desired_prob):
 
     chip_idx = []
     for idx, target in enumerate(targets):
-        if class_idx in rare_classes:
+        if target in rare_classes:
             chip_idx.append(idx)
 
     rare_weight = desired_prob / len(chip_idx)
