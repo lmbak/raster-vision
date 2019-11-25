@@ -71,7 +71,6 @@ class SimpleBackendConfig(BackendConfig):
             config[k] = v
         for k, v in self.train_opts.__dict__.items():
             config[k] = v
-
         custom_config = struct_pb2.Struct()
         custom_config['json'] = json.dumps(config)
         msg = BackendConfigMsg(
