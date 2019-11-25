@@ -106,6 +106,7 @@ def build_databunch(data_dir, img_sz, batch_sz, class_names, rare_classes,
         ImageFolder(valid_dir, classes=class_names))
 
     if rare_classes != []:
+        # Train sampler
         targets = [target[1] for target in train_ds.orig_dataset.imgs]
         train_sample_weights = calculate_oversampling_weights(
             targets, rare_classes, desired_prob)
@@ -114,6 +115,17 @@ def build_databunch(data_dir, img_sz, batch_sz, class_names, rare_classes,
             weights=train_sample_weights,
             num_samples=num_train_samples,
             replacement=True)
+
+        # Valid sampler
+        targets = [target[1] for target in valid_ds.orig_dataset.imgs]
+        valid_sample_weights = calculate_oversampling_weights(
+            targets, rare_classes, desired_prob)
+        num_train_samples = len(valid_ds)
+        valid_sampler = WeightedRandomSampler(
+            weights=valid_sample_weights,
+            num_samples=num_train_samples,
+            replacement=True)
+
         shuffle = False
     else:
         train_sampler = None
