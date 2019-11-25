@@ -10,6 +10,7 @@ from PIL import Image
 import os
 import os.path
 import sys
+from random import choice
 
 
 def has_file_allowed_extension(filename, extensions):

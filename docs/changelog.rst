@@ -13,6 +13,11 @@ Features
 Raster Vision 0.11.0
 ~~~~~~~~~~~~~~~~~~~~~
 
+Features
+^^^^^^^^^^^^
+
+- Added the possibility to oversample rare classes for chip classification `#858 <https://github.com/azavea/raster-vision/pull/858>`
+
 Bug Fixes
 ^^^^^^^^^^
 
