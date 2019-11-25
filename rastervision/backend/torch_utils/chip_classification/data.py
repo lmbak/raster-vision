@@ -4,6 +4,7 @@ from os.path import join
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
+from torch.cuda import device_count
 from albumentations.core.composition import Compose
 from albumentations.augmentations.transforms import (
     Blur, RandomRotate90, HorizontalFlip, VerticalFlip, GaussianBlur,
@@ -43,7 +44,7 @@ class AlbumentationDataset(Dataset):
 
 
 def build_databunch(data_dir, img_sz, batch_sz, class_names, augmentors):
-    num_workers = 4
+    num_workers = 0
 
     train_dir = join(data_dir, 'train')
     valid_dir = join(data_dir, 'valid')
