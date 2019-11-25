@@ -14,6 +14,7 @@ import matplotlib
 matplotlib.use('Agg')  # noqa
 import matplotlib.pyplot as plt
 import torch
+import torch.nn as nn
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import CyclicLR
@@ -31,7 +32,7 @@ from rastervision.backend.torch_utils.chip_classification.data import build_data
 from rastervision.backend.torch_utils.chip_classification.train import (
     train_epoch, validate_epoch)
 from rastervision.backend.torch_utils.chip_classification.model import (
-    get_model)
+    get_model, convert_state_dict)
 
 log = logging.getLogger(__name__)
 
@@ -229,8 +230,8 @@ class PyTorchChipClassification(Backend):
             log.info('Loading weights from pretrained_uri: {}'.format(
                 pretrained_uri))
             pretrained_path = download_if_needed(pretrained_uri, tmp_dir)
-            model.load_state_dict(
-                torch.load(pretrained_path, map_location=self.device))
+            state_dict = torch.load(pretrained_path, map_location=self.device)
+            model.load_state_dict(state_dict)
 
         # Possibly resume training from checkpoint.
         start_epoch = 0
@@ -239,8 +240,8 @@ class PyTorchChipClassification(Backend):
             log.info('Resuming from checkpoint: {}\n'.format(model_path))
             train_state = file_to_json(train_state_path)
             start_epoch = train_state['epoch'] + 1
-            model.load_state_dict(
-                torch.load(model_path, map_location=self.device))
+            state_dict = torch.load(model_path, map_location=self.device)
+            model.load_state_dict(state_dict)
 
         # Write header of log CSV file.
         metric_names = ['precision', 'recall', 'f1']
@@ -281,8 +282,13 @@ class PyTorchChipClassification(Backend):
                 step_size_up=step_size_up,
                 step_size_down=step_size_down,
                 cycle_momentum=False)
+
             for _ in range(start_epoch * steps_per_epoch):
                 step_scheduler.step()
+
+        # Set up for multi GPU
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
 
         # Training loop.
         for epoch in range(start_epoch, num_epochs):
@@ -307,7 +313,10 @@ class PyTorchChipClassification(Backend):
             log.info('epoch elapsed time: {}'.format(epoch_time))
 
             # Save model and state.
-            torch.save(model.state_dict(), model_path)
+            state_dict = model.state_dict()
+            if isinstance(model, nn.DataParallel):
+                state_dict = convert_state_dict(state_dict)
+            torch.save(state_dict, model_path)
             train_state = {'epoch': epoch}
             json_to_file(train_state, train_state_path)
 
@@ -351,9 +360,14 @@ class PyTorchChipClassification(Backend):
             num_classes = len(self.task_config.class_map)
             model = get_model(
                 self.train_opts.model_arch, num_classes, pretrained=False)
+
             model = model.to(self.device)
             model.load_state_dict(
                 torch.load(model_path, map_location=self.device))
+
+            if torch.cuda.device_count() > 1:
+                model = nn.DataParallel(model)
+
             self.model = model
 
     def predict(self, chips, windows, tmp_dir):
